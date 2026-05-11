@@ -1,0 +1,29 @@
+feature,importance,importance_pct
+location_Urban,0.20491663389414705,20.49
+income_quintile,0.1262843693730336,12.63
+has_proof_of_address,0.10942498657878116,10.94
+has_national_id,0.08735107332684339,8.74
+kyc_doc_score,0.08522203270683092,8.52
+distance_to_branch_km,0.07455740734908792,7.46
+kyc_barrier_level_Low,0.06300681029979874,6.3
+has_mobile_phone,0.04411351803263287,4.41
+has_internet,0.034795578378121216,3.48
+age,0.024482806739126534,2.45
+province_Harare,0.023128645778950883,2.31
+gender_Male,0.01669778808712965,1.67
+has_tin,0.015292769660009716,1.53
+has_employment_proof,0.014225365328296245,1.42
+employment_sector_Informal,0.010998435988561076,1.1
+kyc_barrier_level_Medium,0.01084037902023822,1.08
+education_level_Tertiary,0.0106902938350029,1.07
+education_level_Secondary,0.007716786602104968,0.77
+education_level_Primary,0.006300913333817494,0.63
+employment_sector_Unemployed,0.005313631691020238,0.53
+province_Midlands,0.0043571171939427705,0.44
+province_Matabeleland South,0.0037275617123859813,0.37
+province_Masvingo,0.003191544959358761,0.32
+province_Mashonaland East,0.003155317105390715,0.32
+province_Manicaland,0.00280512628941271,0.28
+province_Mashonaland West,0.0027034224652627364,0.27
+province_Mashonaland Central,0.002691601466327692,0.27
+province_Matabeleland North,0.002008082804383688,0.2

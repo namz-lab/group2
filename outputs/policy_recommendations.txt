@@ -1,0 +1,42 @@
+
+POLICY RECOMMENDATIONS — KYC-Driven Financial Exclusion in Zimbabwe
+====================================================================
+
+1. TIERED KYC FRAMEWORK
+   Implement risk-proportionate onboarding aligned with FATF Rec. 10.
+   - Tier 1 (Basic): Mobile money / low-value accounts — accept single
+     government-issued ID (voter registration card, birth certificate)
+     without proof-of-address requirement.
+   - Tier 2 (Standard): Savings / credit access — national ID + one
+     corroborating document (letter from village chief, employer letter).
+   - Tier 3 (Full): Large transactions, foreign exchange — full CDD.
+
+2. DIGITAL IDENTITY INFRASTRUCTURE
+   Invest in a national digital ID system interoperable across financial
+   institutions to eliminate duplicative paper-based verification and
+   reduce compliance costs for low-income segments.
+
+3. ALTERNATIVE PROOF OF ADDRESS
+   Formally accept community vouching letters, ward councillor
+   attestations, and mobile network location data as valid address proof
+   for rural and informal sector customers.
+
+4. MOBILE-FIRST ONBOARDING
+   Mandate that all regulated institutions accept Eco-Cash / mobile wallet
+   history as supplementary identity verification, reducing institutional
+   distance barriers identified in the FERI analysis.
+
+5. GENDER-RESPONSIVE COMPLIANCE GUIDANCE
+   Issue RBZ circular acknowledging female-headed households face
+   disproportionate address documentation barriers; standardise
+   husband/guardian letter waiver for joint accounts.
+
+6. REGULATORY CLARITY
+   Publish binding RBZ compliance bulletins specifying the minimum
+   acceptable documentation set, reducing institutional over-compliance
+   driven by regulatory ambiguity.
+
+7. MONITORING WITH FERI
+   Adopt the Financial Exclusion Risk Index as a supervisory tool —
+   financial institutions should report quarterly FERI-banded account
+   opening rejection rates to the FIU as an inclusion metric.

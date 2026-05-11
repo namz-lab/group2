@@ -1,0 +1,29 @@
+feature,importance,importance_pct
+kyc_doc_score,1.1598759347225727,11.94
+location_Urban,1.0725792245331582,11.04
+has_employment_proof,0.9033881602817879,9.3
+has_national_id,0.8244593639208778,8.49
+has_tin,0.7788139636835552,8.02
+has_mobile_phone,0.5957503029264604,6.13
+kyc_barrier_level_Low,0.5703668058572017,5.87
+education_level_Tertiary,0.5283328830667249,5.44
+employment_sector_Unemployed,0.43621447800312646,4.49
+has_proof_of_address,0.3813522860194737,3.92
+education_level_Secondary,0.3712846419454087,3.82
+kyc_barrier_level_Medium,0.33434552370349463,3.44
+gender_Male,0.2962201788011789,3.05
+income_quintile,0.26380273788120595,2.71
+education_level_Primary,0.25341421770701433,2.61
+employment_sector_Informal,0.2494598404646834,2.57
+province_Matabeleland North,0.17440330867257,1.79
+province_Matabeleland South,0.11197050286704717,1.15
+distance_to_branch_km,0.09390395771103535,0.97
+has_internet,0.06433540719144452,0.66
+province_Manicaland,0.05946493878185876,0.61
+province_Masvingo,0.05458562045462242,0.56
+province_Midlands,0.04113156725398248,0.42
+province_Mashonaland Central,0.03332434932992643,0.34
+age,0.030440639909962503,0.31
+province_Harare,0.02886398896224408,0.3
+province_Mashonaland East,0.0040801923644133075,0.04
+province_Mashonaland West,0.0004971594550073728,0.01
