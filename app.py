@@ -592,8 +592,9 @@ def page_overview(df, summary):
         st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
     with c2:
-        # FERI band pie
-        band_counts = df['feri_band'].value_counts()
+        # FERI band pie — filter out any residual 'nan' strings
+        _valid_bands = ['Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk']
+        band_counts = df[df['feri_band'].isin(_valid_bands)]['feri_band'].value_counts()
         colors = [RISK_COLORS.get(b, '#718096') for b in band_counts.index]
         fig2 = go.Figure(go.Pie(
             labels=band_counts.index,
@@ -1219,13 +1220,16 @@ def page_explorer(df):
     section_header("Filtered Records")
     display_cols = ['age', 'gender', 'location', 'province', 'employment_sector',
                     'income_quintile', 'kyc_doc_score', 'feri_score', 'feri_band', 'financially_excluded']
-    st.dataframe(
-        dff[display_cols].head(200).style
-        .background_gradient(subset=['feri_score'], cmap='RdYlGn_r')
-        .format({'feri_score': '{:.1f}', 'financially_excluded': lambda x: '🔴 Excluded' if x else '🟢 Included'}),
-        use_container_width=True,
-        height=360,
+    display_df = dff[display_cols].head(200).copy()
+    display_df['feri_score'] = display_df['feri_score'].round(1)
+    display_df['financially_excluded'] = display_df['financially_excluded'].map(
+        {1: 'Excluded', 0: 'Included'}
     )
+    try:
+        styled = display_df.style.background_gradient(subset=['feri_score'], cmap='RdYlGn_r')
+        st.dataframe(styled, use_container_width=True, height=360)
+    except Exception:
+        st.dataframe(display_df, use_container_width=True, height=360)
     st.caption(f"Showing first 200 of {len(dff):,} filtered records")
 
 
@@ -1498,14 +1502,22 @@ def main():
         page_overview(df, summary)
 
     elif page == 'scanner':
-        with st.spinner("Loading models..."):
-            models, results, feature_names, feat_imp, X_test, y_test, encoders, scaler = load_models()
-        page_scanner(models, feature_names, encoders, scaler)
+        try:
+            with st.spinner("Loading models..."):
+                models, results, feature_names, feat_imp, X_test, y_test, encoders, scaler = load_models()
+            page_scanner(models, feature_names, encoders, scaler)
+        except Exception as _e:
+            st.error(f"Model loading failed: {_e}")
+            st.info("The FERI score calculator still works — fill in the form and the risk assessment will run using the FERI formula only.")
+            page_scanner({}, [], {}, None)
 
     elif page == 'models':
-        with st.spinner("Loading models..."):
-            models, results, feature_names, feat_imp, X_test, y_test, encoders, scaler = load_models()
-        page_models(results, feat_imp)
+        try:
+            with st.spinner("Loading models..."):
+                models, results, feature_names, feat_imp, X_test, y_test, encoders, scaler = load_models()
+            page_models(results, feat_imp)
+        except Exception as _e:
+            st.error(f"Model loading failed: {_e}")
 
     elif page == 'explorer':
         page_explorer(df)

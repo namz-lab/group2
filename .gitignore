@@ -1,6 +1,9 @@
 # Spurious file from pip redirect
 =5.17.0
 
+# Microsoft Office temp lock files
+~$*
+
 # Python
 __pycache__/
 *.py[cod]

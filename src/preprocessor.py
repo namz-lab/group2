@@ -6,9 +6,8 @@ Handles encoding, scaling, class imbalance, and train/test splitting.
 import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import StandardScaler, LabelEncoder
-from sklearn.pipeline import Pipeline
-from imblearn.over_sampling import SMOTE
+from sklearn.preprocessing import StandardScaler
+from sklearn.utils import resample
 
 
 CATEGORICAL_FEATURES = [
@@ -37,20 +36,17 @@ def encode_and_scale(df: pd.DataFrame, fit_encoders: dict = None, fit_scaler=Non
     """
     df = df.copy()
 
-    # One-hot encode categoricals
     if fit_encoders is None:
         df_encoded = pd.get_dummies(df[CATEGORICAL_FEATURES], drop_first=True)
         encoders = {'columns': list(df_encoded.columns)}
     else:
         df_encoded = pd.get_dummies(df[CATEGORICAL_FEATURES], drop_first=True)
-        # Align to training columns
         for col in fit_encoders['columns']:
             if col not in df_encoded.columns:
                 df_encoded[col] = 0
         df_encoded = df_encoded[fit_encoders['columns']]
         encoders = fit_encoders
 
-    # Numeric features
     num_data = df[NUMERIC_FEATURES].copy()
     if fit_scaler is None:
         scaler = StandardScaler()
@@ -67,7 +63,6 @@ def encode_and_scale(df: pd.DataFrame, fit_encoders: dict = None, fit_scaler=Non
             index=df.index,
         )
 
-    # Binary features (no scaling needed)
     bin_data = df[BINARY_FEATURES].copy().reset_index(drop=True)
     num_scaled = num_scaled.reset_index(drop=True)
     df_encoded = df_encoded.reset_index(drop=True)
@@ -79,8 +74,9 @@ def encode_and_scale(df: pd.DataFrame, fit_encoders: dict = None, fit_scaler=Non
 def prepare_data(df: pd.DataFrame, test_size: float = 0.2, balance: bool = True,
                  random_state: int = 42):
     """
-    Full preprocessing pipeline: encode -> split -> optionally SMOTE-balance.
+    Full preprocessing pipeline: encode -> split -> optionally oversample minority class.
     Returns (X_train, X_test, y_train, y_test, feature_names, encoders, scaler).
+    Uses sklearn resample (no imblearn dependency).
     """
     y = df[TARGET].values
 
@@ -91,9 +87,25 @@ def prepare_data(df: pd.DataFrame, test_size: float = 0.2, balance: bool = True,
     )
 
     if balance:
-        smote = SMOTE(random_state=random_state)
-        X_train_arr, y_train_arr = smote.fit_resample(X_train.values, y_train)
-        X_train = pd.DataFrame(X_train_arr, columns=feature_names)
-        y_train = y_train_arr
+        # Manual random oversampling of minority class (replaces SMOTE)
+        y_series = pd.Series(y_train)
+        classes, counts = np.unique(y_train, return_counts=True)
+        majority_cls = classes[np.argmax(counts)]
+        minority_cls = classes[np.argmin(counts)]
+
+        X_maj = X_train[y_series == majority_cls]
+        X_min = X_train[y_series == minority_cls]
+        y_maj = y_series[y_series == majority_cls]
+        y_min = y_series[y_series == minority_cls]
+
+        X_min_up, y_min_up = resample(
+            X_min, y_min,
+            replace=True,
+            n_samples=len(X_maj),
+            random_state=random_state,
+        )
+
+        X_train = pd.concat([X_maj, X_min_up]).reset_index(drop=True)
+        y_train = np.concatenate([y_maj.values, y_min_up.values])
 
     return X_train, X_test, y_train, y_test, feature_names, encoders, scaler
