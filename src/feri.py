@@ -90,9 +90,9 @@ def compute_feri(df: pd.DataFrame) -> pd.DataFrame:
 
     out['feri_band'] = pd.cut(
         out['feri_score'],
-        bins=[-1, 25, 45, 65, 100],
+        bins=[-1, 25, 45, 65, 101],
         labels=['Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk'],
-    )
+    ).astype(str)
     return out
 
 

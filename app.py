@@ -288,6 +288,64 @@ header { visibility: hidden; }
 """, unsafe_allow_html=True)
 
 
+# ── Authentication ────────────────────────────────────────────────────────────
+# Credentials: username → plaintext password (extend as needed)
+_USERS = {
+    'admin':   'kyc@msu2024',
+    'group2':  'msu@group2',
+    'analyst': 'feri@2024',
+}
+
+
+def _show_login_page():
+    """Render a branded login form and return True when authenticated."""
+    st.markdown("""
+    <div style="max-width:420px; margin:80px auto 0 auto;">
+        <div style="text-align:center; margin-bottom:32px;">
+            <div style="font-size:60px;">🏦</div>
+            <div style="font-size:24px; font-weight:800; color:#63b3ed; letter-spacing:0.04em; margin:12px 0 4px 0;">
+                KYC EXCLUSION AI PLATFORM
+            </div>
+            <div style="font-size:12px; color:#4a5568; letter-spacing:0.08em; text-transform:uppercase;">
+                Midlands State University — Group 2
+            </div>
+        </div>
+    </div>
+    """, unsafe_allow_html=True)
+
+    with st.container():
+        col_l, col_c, col_r = st.columns([1, 2, 1])
+        with col_c:
+            with st.form("login_form", clear_on_submit=False):
+                st.markdown('<div style="font-size:16px; font-weight:600; color:#e2e8f0; margin-bottom:16px;">Sign In</div>',
+                            unsafe_allow_html=True)
+                username = st.text_input("Username", placeholder="Enter username")
+                password = st.text_input("Password", type="password", placeholder="Enter password")
+                submitted = st.form_submit_button("  🔐  LOGIN  ", use_container_width=True)
+
+                if submitted:
+                    if username in _USERS and _USERS[username] == password:
+                        st.session_state['authenticated'] = True
+                        st.session_state['username'] = username
+                        st.rerun()
+                    else:
+                        st.error("Invalid username or password. Please try again.")
+
+            st.markdown("""
+            <div style="text-align:center; margin-top:16px; font-size:12px; color:#4a5568;">
+                Contact your administrator for access credentials.
+            </div>
+            """, unsafe_allow_html=True)
+
+
+def _require_auth():
+    """Return True if user is authenticated, otherwise render login and return False."""
+    if st.session_state.get('authenticated', False):
+        return True
+    _show_login_page()
+    return False
+
+
 # ── Plotly theme ──────────────────────────────────────────────────────────────
 PLOTLY_THEME = dict(
     paper_bgcolor='rgba(0,0,0,0)',
@@ -312,11 +370,27 @@ def load_data():
     from src.feri import compute_feri, feri_summary
 
     feri_path = 'data/kyc_with_feri.csv'
+    _required_cols = {'feri_score', 'feri_band', 'kyc_gap_score', 'demographic_score', 'institutional_score'}
+
     if os.path.exists(feri_path):
         df = pd.read_csv(feri_path)
+        # Regenerate FERI columns if missing or corrupted
+        if not _required_cols.issubset(df.columns) or df['feri_score'].isna().all():
+            df = compute_feri(df)
+        else:
+            # Ensure feri_band has no NaN (can happen from CSV Categorical round-trip)
+            if df['feri_band'].isna().any():
+                df['feri_band'] = pd.cut(
+                    df['feri_score'],
+                    bins=[-1, 25, 45, 65, 101],
+                    labels=['Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk'],
+                ).astype(str)
     else:
         df_raw = generate_kyc_financial_data(n=5000, seed=42)
         df = compute_feri(df_raw)
+
+    # Ensure feri_band is always a plain string column (avoids Categorical comparison issues)
+    df['feri_band'] = df['feri_band'].astype(str)
 
     summary = feri_summary(df)
     return df, summary
@@ -348,17 +422,28 @@ def load_models():
 def metric_card(label, value, delta=None, sub=None, delta_positive=True):
     delta_html = ''
     if delta:
-        cls = 'delta' if delta_positive else 'delta negative'
+        color = '#68d391' if delta_positive else '#fc8181'
         arrow = '▲' if delta_positive else '▼'
-        delta_html = f'<div class="{cls}">{arrow} {delta}</div>'
-    sub_html = f'<div class="sub">{sub}</div>' if sub else ''
-    return f"""
-    <div class="metric-card">
-        <div class="label">{label}</div>
-        <div class="value">{value}</div>
-        {delta_html}
-        {sub_html}
-    </div>"""
+        delta_html = (
+            f'<div style="font-size:13px;font-weight:500;color:{color};margin-bottom:4px;">'
+            f'{arrow} {delta}</div>'
+        )
+    sub_html = (
+        f'<div style="font-size:12px;color:#4a5568;margin-top:4px;">{sub}</div>'
+        if sub else ''
+    )
+    return (
+        '<div style="background:linear-gradient(135deg,rgba(13,27,42,0.9) 0%,rgba(17,36,58,0.9) 100%);'
+        'border:1px solid rgba(99,179,237,0.2);border-radius:16px;padding:20px 24px;'
+        'box-shadow:0 4px 24px rgba(0,0,0,0.4),inset 0 1px 0 rgba(255,255,255,0.05);'
+        'position:relative;overflow:hidden;">'
+        f'<div style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;'
+        f'color:#718096;margin-bottom:8px;">{label}</div>'
+        f'<div style="font-size:36px;font-weight:800;color:#63b3ed;line-height:1;margin-bottom:6px;">{value}</div>'
+        f'{delta_html}'
+        f'{sub_html}'
+        '</div>'
+    )
 
 
 def section_header(title, subtitle=''):
@@ -411,6 +496,21 @@ def render_sidebar():
         </div>
         """, unsafe_allow_html=True)
 
+        # ── Logged-in user + logout ──
+        username = st.session_state.get('username', '')
+        st.markdown(f"""
+        <div style="margin: 8px 0 4px 0; padding: 10px 14px;
+                    background: rgba(99,179,237,0.06); border-radius: 10px;
+                    border: 1px solid rgba(99,179,237,0.12);">
+            <div style="font-size:11px; color:#4a5568; text-transform:uppercase; letter-spacing:0.06em;">Signed in as</div>
+            <div style="font-size:13px; font-weight:600; color:#63b3ed; margin-top:2px;">👤 {username}</div>
+        </div>
+        """, unsafe_allow_html=True)
+        if st.button("🚪  Logout", use_container_width=True, key="logout_btn"):
+            st.session_state['authenticated'] = False
+            st.session_state['username'] = ''
+            st.rerun()
+
     return st.session_state.page
 
 
@@ -429,8 +529,10 @@ def page_overview(df, summary):
     exc_rate   = df['financially_excluded'].mean() * 100
     rural_exc  = df[df['location'] == 'Rural']['financially_excluded'].mean() * 100
     female_exc = df[df['gender'] == 'Female']['financially_excluded'].mean() * 100
-    mean_feri  = df['feri_score'].mean()
-    critical   = (df['feri_band'] == 'Critical Risk').sum()
+    mean_feri  = df['feri_score'].mean() if 'feri_score' in df.columns else 0.0
+    critical   = int((df['feri_band'].astype(str) == 'Critical Risk').sum()) if 'feri_band' in df.columns else 0
+    if pd.isna(mean_feri):
+        mean_feri = 0.0
 
     cols = st.columns(5)
     with cols[0]:
@@ -655,12 +757,43 @@ def page_scanner(models, feature_names, encoders, scaler):
             has_tin  = st.checkbox("Tax ID Number (TIN)", value=False)
             has_emp  = st.checkbox("Employment Proof", value=False) if employment != 'Unemployed' else False
 
-        section_header("Connectivity", "Technology access indicators")
+        section_header("Connectivity", "Technology access — including basic/feature phones (Chimbudzi)")
         tc1, tc2 = st.columns(2)
         with tc1:
-            has_mobile = st.checkbox("Mobile Phone", value=True)
+            phone_type = st.radio(
+                "Phone / Handset Type",
+                options=["Smartphone", "Basic Phone (Chimbudzi)", "No Phone"],
+                index=0,
+                help=(
+                    "Smartphone: data & app capable\n"
+                    "Basic Phone / Chimbudzi: USSD (*120#) capable, no mobile data\n"
+                    "No Phone: no mobile device at all"
+                ),
+            )
+            has_mobile = phone_type != "No Phone"
         with tc2:
-            has_internet = st.checkbox("Internet Access", value=False)
+            if phone_type == "Smartphone":
+                has_internet = st.checkbox("Internet / Mobile Data Access", value=False)
+            else:
+                has_internet = False
+                if phone_type == "Basic Phone (Chimbudzi)":
+                    st.markdown("""
+                    <div style="background:rgba(246,173,85,0.08); border:1px solid rgba(246,173,85,0.25);
+                                border-radius:10px; padding:12px 14px; margin-top:8px; font-size:12px; color:#f6ad55;">
+                        <b>USSD Only</b><br>
+                        Can use EcoCash (*151#) and USSD banking.<br>
+                        No app / internet KYC available.
+                    </div>
+                    """, unsafe_allow_html=True)
+                else:
+                    st.markdown("""
+                    <div style="background:rgba(252,100,100,0.08); border:1px solid rgba(252,100,100,0.25);
+                                border-radius:10px; padding:12px 14px; margin-top:8px; font-size:12px; color:#fc6464;">
+                        <b>No Mobile Connectivity</b><br>
+                        Highest institutional barrier.<br>
+                        Physical branch visit required.
+                    </div>
+                    """, unsafe_allow_html=True)
 
         assess_btn = st.button("  ⚡  RUN RISK ASSESSMENT  ", use_container_width=True)
 
@@ -788,8 +921,12 @@ def page_scanner(models, feature_names, encoders, scaler):
                 recs.append(("Proof of Address", "Accept chief's letter / ward councillor attestation", "#fc814a"))
             if location == 'Rural' and distance > 20:
                 recs.append(("Distance Barrier", "Enable mobile onboarding / agent banking nearby", "#f6ad55"))
-            if not has_mobile:
-                recs.append(("Mobile Phone", "Provision subsidised device for mobile ID verification", "#f6ad55"))
+            if phone_type == "No Phone":
+                recs.append(("No Mobile Device", "Provision subsidised feature phone (Chimbudzi) for USSD access", "#fc814a"))
+            elif phone_type == "Basic Phone (Chimbudzi)":
+                recs.append(("USSD Banking", "Enable EcoCash / ZIPIT USSD onboarding (*120*1# / *151#) for feature phone users", "#f6ad55"))
+            if not has_internet and phone_type == "Smartphone":
+                recs.append(("Mobile Data", "Access data-lite KYC app — bundles available via Econet/NetOne", "#9f7aea"))
             if not has_tin and employment == 'Formal':
                 recs.append(("TIN Registration", "Auto-register TIN at onboarding for formal employees", "#9f7aea"))
 
@@ -958,28 +1095,69 @@ def page_explorer(df):
     </div>
     """, unsafe_allow_html=True)
 
-    # ── Filter panel ──
-    with st.expander("  🔽  Filter Dataset", expanded=True):
-        f1, f2, f3, f4 = st.columns(4)
-        with f1:
-            loc_f = st.multiselect("Location", ['Urban', 'Rural'], default=['Urban', 'Rural'])
-        with f2:
-            gen_f = st.multiselect("Gender", ['Male', 'Female'], default=['Male', 'Female'])
-        with f3:
-            emp_f = st.multiselect("Employment", ['Formal', 'Informal', 'Unemployed'],
-                                   default=['Formal', 'Informal', 'Unemployed'])
-        with f4:
-            exc_f = st.multiselect("Exclusion Status", [0, 1],
-                                   format_func=lambda x: 'Excluded' if x == 1 else 'Included',
-                                   default=[0, 1])
+    # ── Interactive Filter Panel ──
+    st.markdown('<div class="section-header" style="margin-top:0;">Filter Dataset</div>', unsafe_allow_html=True)
+    st.markdown('<div class="section-sub">All filters apply instantly — no button needed</div>', unsafe_allow_html=True)
+
+    row1 = st.columns([1, 1, 1, 1])
+    row2 = st.columns([1.5, 1.5, 1])
+
+    with row1[0]:
+        loc_f = st.multiselect("Location", ['Urban', 'Rural'], default=['Urban', 'Rural'])
+    with row1[1]:
+        gen_f = st.multiselect("Gender", ['Male', 'Female'], default=['Male', 'Female'])
+    with row1[2]:
+        emp_f = st.multiselect("Employment", ['Formal', 'Informal', 'Unemployed'],
+                               default=['Formal', 'Informal', 'Unemployed'])
+    with row1[3]:
+        exc_f = st.multiselect("Exclusion Status", [0, 1],
+                               format_func=lambda x: 'Excluded' if x == 1 else 'Included',
+                               default=[0, 1])
+
+    with row2[0]:
+        all_provinces = sorted(df['province'].unique().tolist())
+        prov_f = st.multiselect("Province", all_provinces, default=all_provinces)
+    with row2[1]:
+        all_bands = ['Low Risk', 'Moderate Risk', 'High Risk', 'Critical Risk']
+        band_f = st.multiselect("FERI Risk Band", all_bands, default=all_bands)
+    with row2[2]:
+        age_range = st.slider("Age Range", int(df['age'].min()), int(df['age'].max()),
+                              (int(df['age'].min()), int(df['age'].max())))
+
+    # Collapsible advanced filters
+    with st.expander("Advanced Filters", expanded=False):
+        adv1, adv2 = st.columns(2)
+        with adv1:
+            inc_range = st.slider("Income Quintile", 1, 5, (1, 5))
+        with adv2:
+            feri_range = st.slider("FERI Score Range", 0.0, 100.0, (0.0, 100.0), step=0.5)
+
+    # Build safe default lists if filters are cleared
+    loc_f   = loc_f   or ['Urban', 'Rural']
+    gen_f   = gen_f   or ['Male', 'Female']
+    emp_f   = emp_f   or ['Formal', 'Informal', 'Unemployed']
+    exc_f   = exc_f   or [0, 1]
+    prov_f  = prov_f  or all_provinces
+    band_f  = band_f  or all_bands
 
     mask = (
         df['location'].isin(loc_f) &
         df['gender'].isin(gen_f) &
         df['employment_sector'].isin(emp_f) &
-        df['financially_excluded'].isin(exc_f)
+        df['financially_excluded'].isin(exc_f) &
+        df['province'].isin(prov_f) &
+        df['feri_band'].astype(str).isin(band_f) &
+        df['age'].between(age_range[0], age_range[1]) &
+        df['income_quintile'].between(inc_range[0], inc_range[1]) &
+        df['feri_score'].between(feri_range[0], feri_range[1])
     )
     dff = df[mask]
+
+    if dff.empty:
+        st.warning("No records match the current filter combination. Try widening your filters.")
+        return
+
+    divider()
 
     # ── Filtered KPIs ──
     k1, k2, k3, k4 = st.columns(4)
@@ -1308,6 +1486,9 @@ def page_policy(df):
 # MAIN
 # ═══════════════════════════════════════════════════════════════════════════════
 def main():
+    if not _require_auth():
+        return
+
     with st.spinner("Initialising platform..."):
         df, summary = load_data()
 
