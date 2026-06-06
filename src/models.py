@@ -28,7 +28,7 @@ def train_logistic_regression(X_train, y_train, random_state=42):
 
 def train_random_forest(X_train, y_train, random_state=42):
     model = RandomForestClassifier(
-        n_estimators=200, max_depth=8, min_samples_leaf=10,
+        n_estimators=50, max_depth=6, min_samples_leaf=10,
         class_weight='balanced', random_state=random_state, n_jobs=-1,
     )
     model.fit(X_train, y_train)
@@ -37,7 +37,7 @@ def train_random_forest(X_train, y_train, random_state=42):
 
 def train_gradient_boosting(X_train, y_train, random_state=42):
     model = xgb.XGBClassifier(
-        n_estimators=200, max_depth=5, learning_rate=0.05,
+        n_estimators=50, max_depth=4, learning_rate=0.1,
         subsample=0.8, colsample_bytree=0.8,
         scale_pos_weight=1, eval_metric='logloss',
         random_state=random_state,

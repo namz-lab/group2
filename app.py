@@ -404,7 +404,7 @@ def load_models():
     from src.models import train_all_models, evaluate_model, get_feature_importance
     from src.feri import compute_feri
 
-    df_raw = generate_kyc_financial_data(n=5000, seed=42)
+    df_raw = generate_kyc_financial_data(n=2000, seed=42)
     X_train, X_test, y_train, y_test, feature_names, encoders, scaler = prepare_data(
         df_raw, test_size=0.20, balance=True, random_state=42
     )
